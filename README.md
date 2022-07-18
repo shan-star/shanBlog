@@ -1,7 +1,7 @@
 # shanBlog
 vue+springboot Project
 
-网站演示效果：https://blog.yilele.site/
+网站演示效果：https://blog.yilele.site/     账号：admin    密码：123456
 
 
 <br/>
