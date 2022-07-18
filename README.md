@@ -27,3 +27,6 @@ blog.sql
 
 打包项目命令：npm run build
 
+
+### 部署项目（Dockerfile 和 docker-compose.yaml 在 blog-api 目录下）：
+docker-compose.yaml文件中需要配置数据库密码
