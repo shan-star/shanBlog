@@ -1,7 +1,8 @@
 # shanBlog
 vue+springboot Project
 
-网站演示效果：https://blog.yilele.site/     账号：admin    密码：123456
+网站演示效果：https://blog.yilele.site/  
+账号：admin    密码：123456
 
 
 <br/>
@@ -26,9 +27,9 @@ blog.sql
 
 在配置文件config 目录下的 dev.env.js 配置BASE_API(请求后端的基本路径)
 
-然后安装依赖[命令：npm install]，启动项目[命令：npm run dev]
-
-打包项目命令：npm run build
+然后安装依赖[命令：npm install]，
+打包项目[命令：npm run build]，
+启动项目[命令：npm run dev]
 
 <br/>
 
