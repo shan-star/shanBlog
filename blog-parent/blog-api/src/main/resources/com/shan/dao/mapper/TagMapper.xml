@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--MyBatis配置文件-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shan.dao.mapper.TagMapper">
+
+    <!-- List<Tag> findTagsByArticleId(Long articleId); -->
+    <select id="findTagsByArticleId" parameterType="long" resultType="com.shan.dao.pojo.Tag">
+        select id, avatar, tag_name as tagName from ys_tag
+        where id in
+        (select tag_id from ys_article_tag where article_id = #{articleId})
+    </select>
+
+
+    <!-- List<Long> findHostTagIds(int limit); -->
+    <select id="findHostTagIds" resultType="java.lang.Long">
+        select tag_id from ys_article_tag
+        GROUP BY tag_id
+        ORDER BY count(tag_id) desc
+        limit #{limit};
+    </select>
+
+    <!-- List<Tag> findTagsByIds(List<Long> tagIds); -->
+    <select id="findTagsByIds" resultType="com.shan.dao.pojo.Tag">
+        select id, tag_name as tagName from ys_tag
+        where id in
+        <foreach collection="tagIds" item="tagId" separator="," open="(" close=")">
+            #{tagId}
+        </foreach>
+
+    </select>
+</mapper>
+
+
+
+

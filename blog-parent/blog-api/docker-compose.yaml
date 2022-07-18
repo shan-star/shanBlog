@@ -1,0 +1,58 @@
+version: "3"
+services:
+  mysql:
+    image: mysql:5.7
+    container_name: mysql
+    ports:
+      - 3305:3306
+    volumes:
+      - /mnt/docker/mysql/conf:/etc/mysql/conf
+      - /mnt/docker/mysql/logs:/logs
+      - /mnt/docker/mysql/data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_USER: test
+      MYSQL_PASS: 123456
+  redis:
+    image: redis
+    container_name: redis
+    ports:
+      - 6378:6379
+    volumes:
+      - /mnt/docker/redis/data:/data
+    environment:
+      REDIS_PASSWORD: wakuang
+  app:
+    image: app
+    container_name: app
+    expose:
+      - 8888
+    depends_on:
+      - mysql
+      - redis
+  nginx:
+    image: nginx
+    container_name: nginx
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - /mnt/docker/nginx/:/etc/nginx/
+      - /mnt/shan/blog:/shan/blog
+    links:
+      - app
+    depends_on:
+      - app
+
+
+
+
+
+
+
+
+
+
+
+
+
