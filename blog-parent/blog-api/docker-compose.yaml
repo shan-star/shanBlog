@@ -10,7 +10,7 @@ services:
       - /mnt/docker/mysql/logs:/logs
       - /mnt/docker/mysql/data:/var/lib/mysql
     environment:
-      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_ROOT_PASSWORD: 
       MYSQL_USER: test
       MYSQL_PASS: 123456
   redis:
