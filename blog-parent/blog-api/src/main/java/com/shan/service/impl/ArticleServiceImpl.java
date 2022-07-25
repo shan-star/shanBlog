@@ -21,6 +21,7 @@ import com.shan.vo.params.PageParams;
 import org.joda.time.DateTime;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -45,12 +46,22 @@ public class ArticleServiceImpl implements ArticleService {
     private ThreadService threadService;
     @Autowired
     private ArticleTagMapper articleTagMapper;
+    @Autowired
+    private StringRedisTemplate redisTemplate;
 
     @Override
     public Result listArticles(PageParams pageParams) {
         Page<Article> page = new Page<>(pageParams.getPage(), pageParams.getPageSize());
         IPage<Article> articleIPage = this.articleMapper.listArticle(page, pageParams.getCategoryId(), pageParams.getTagId(), pageParams.getYear(), pageParams.getMonth());
-        return Result.success(copyList(articleIPage.getRecords(), true, true));
+//        return Result.success(copyList(articleIPage.getRecords(), true, true));
+        List<Article> records = articleIPage.getRecords();
+        for (Article record : records) {
+            String viewCount = (String) redisTemplate.opsForHash().get("view_count", String.valueOf(record.getId()));
+            if (viewCount != null){
+                record.setViewCounts(Integer.parseInt(viewCount));
+            }
+        }
+        return Result.success(copyList(records,true,true));
     }
 
 
@@ -226,6 +237,10 @@ public class ArticleServiceImpl implements ArticleService {
          */
         //通过多线程，异步更新文章的阅读数
         threadService.updateViewCount(articleMapper, article);
+        String viewCount = (String) redisTemplate.opsForHash().get("view_count", String.valueOf(id));
+        if (viewCount != null){
+            articleVo.setViewCounts(Integer.parseInt(viewCount));
+        }
         return Result.success(articleVo);
     }
 
