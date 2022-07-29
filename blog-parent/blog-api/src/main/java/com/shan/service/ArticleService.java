@@ -51,4 +51,12 @@ public interface ArticleService {
      * @return
      */
     Result publish(ArticleParam articleParam);
+
+
+    /**
+     * 文章搜索
+     * @param search
+     * @return
+     */
+    Result searchArticle(String search);
 }

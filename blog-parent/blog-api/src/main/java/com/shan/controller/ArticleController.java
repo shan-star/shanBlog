@@ -94,4 +94,16 @@ public class ArticleController {
     public Result articleById(@PathVariable("id") Long articleId){
         return articleService.findArticleById(articleId);
     }
+
+    /**
+     * 搜索文章
+     * @param articleParam
+     * @return
+     */
+    @PostMapping("search")
+    public Result search(@RequestBody ArticleParam articleParam){
+        //写一个搜索接口
+        String search = articleParam.getSearch();
+        return articleService.searchArticle(search);
+    }
 }

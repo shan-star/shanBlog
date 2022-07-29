@@ -452,7 +452,18 @@ public class ArticleServiceImpl implements ArticleService {
 //            rocketMQTemplate.convertAndSend("blog-update-article",articleMessage);
         }
         return Result.success(map);
+    }
 
+    @Override
+    public Result searchArticle(String search) {
+        LambdaQueryWrapper<Article> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.orderByDesc(Article::getViewCounts);
+        queryWrapper.select(Article::getId,Article::getTitle);
+        queryWrapper.like(Article::getTitle,search);
+        //select id,title from article order by view_counts desc limit 5
+        List<Article> articles = articleMapper.selectList(queryWrapper);
+
+        return Result.success(copyList(articles,false,false));
     }
 
 }

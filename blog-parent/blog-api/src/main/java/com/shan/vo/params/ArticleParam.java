@@ -21,4 +21,7 @@ public class ArticleParam {
     private List<TagVo> tags;
 
     private String title;
+
+    //搜索参数
+    private String search;
 }

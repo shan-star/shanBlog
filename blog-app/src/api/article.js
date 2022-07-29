@@ -82,6 +82,13 @@ export function getArticleById(id) {
     url: `/articles/${id}`,
     method: 'post'
   })
-
-
 }
+
+export function searchArticle(search) {
+  return request({
+    url: '/articles/search',
+    method: 'post',
+    data: {"search":search}
+  })
+}
+

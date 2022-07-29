@@ -19,6 +19,24 @@
           <el-col :span="4" :offset="4">
             <el-menu-item index="/write"><i class="el-icon-edit"></i>写文章</el-menu-item>
           </el-col>
+          <!-- 搜索框 -->
+          <el-col :span="6">
+            <el-menu  mode="horizontal" active-text-color="#5FB878">
+              <el-menu-item >
+                <!-- <el-input placeholder="请输入搜索内容"  @keyup.enter.native="searchHandler" v-model="search"></el-input> -->
+
+                <template>
+                  <el-autocomplete
+                    v-model="search"
+                    :fetch-suggestions="querySearchAsync"
+                    placeholder="请输入内容"
+                    @select="handleSelect"
+                  ></el-autocomplete>
+                </template>
+
+              </el-menu-item>
+            </el-menu>
+          </el-col>
 
         </el-menu>
       </el-col>
@@ -26,6 +44,8 @@
       <template v-else>
         <slot></slot>
       </template>
+
+
 
       <el-col :span="4">
         <el-menu :router=true menu-trigger="click" mode="horizontal" active-text-color="#5FB878">
@@ -55,6 +75,8 @@
 </template>
 
 <script>
+import {searchArticle} from '@/api/article'
+
   export default {
     name: 'BaseHeader',
     props: {
@@ -65,7 +87,10 @@
       }
     },
     data() {
-      return {}
+      return {
+        search:'',
+        articles:[]
+      }
     },
     computed: {
       user() {
@@ -86,6 +111,24 @@
             that.$message({message: error, type: 'error', showClose: true});
           }
         })
+      },
+      querySearchAsync(queryString, cb){
+        searchArticle(this.search).then((res)=>{
+          if(res.success){
+            var results = [];
+            for(const item of res.data){
+              results.push({
+                id:item.id,
+                value:item.title
+              });
+            }
+            cb(results)
+          }
+        })
+
+      },
+      handleSelect(item){
+        this.$router.push({path: '/view/'+item.id})
       }
     }
   }
