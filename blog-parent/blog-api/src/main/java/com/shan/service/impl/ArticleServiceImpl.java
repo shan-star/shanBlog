@@ -34,37 +34,51 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Autowired
     private ArticleMapper articleMapper;
+
     @Autowired
     private TagService tagService;
     @Autowired
     private SysUserService sysUserService;
-    @Autowired
-    private ArticleBodyMapper articleBodyMapper;
-    @Autowired
-    private CategoryService categoryService;
-    @Autowired
-    private ThreadService threadService;
-    @Autowired
-    private ArticleTagMapper articleTagMapper;
+
     @Autowired
     private StringRedisTemplate redisTemplate;
 
+    @Autowired
+    private ArticleBodyMapper articleBodyMapper;
+
+    @Autowired
+    private CategoryService categoryService;
+
+    @Autowired
+    private ThreadService threadService;
+
+    @Autowired
+    private ArticleTagMapper articleTagMapper;
+
+
+    /**
+     * 分页查询文章列表
+     */
     @Override
     public Result listArticles(PageParams pageParams) {
         Page<Article> page = new Page<>(pageParams.getPage(), pageParams.getPageSize());
         IPage<Article> articleIPage = this.articleMapper.listArticle(page, pageParams.getCategoryId(), pageParams.getTagId(), pageParams.getYear(), pageParams.getMonth());
-//        return Result.success(copyList(articleIPage.getRecords(), true, true));
-        List<Article> records = articleIPage.getRecords();
-        for (Article record : records) {
-            String viewCount = (String) redisTemplate.opsForHash().get("view_count", String.valueOf(record.getId()));
-            if (viewCount != null){
-                record.setViewCounts(Integer.parseInt(viewCount));
-            }
-        }
-        return Result.success(copyList(records,true,true));
+        return Result.success(copyList(articleIPage.getRecords(), true, true));
+
+        //获取redis数据
+//        List<Article> records = articleIPage.getRecords();
+//        for (Article record : records) {
+//            String viewCount = (String) redisTemplate.opsForHash().get("view_count", String.valueOf(record.getId()));
+//            if (viewCount != null){
+//                record.setViewCounts(Integer.parseInt(viewCount));
+//            }
+//        }
+//        return Result.success(copyList(records,true,true));
     }
 
-
+    /**
+     * 分页查询文章列表
+     */
 //    @Override
 //    public Result listArticles(PageParams pageParams) {
 //        /**
@@ -73,33 +87,6 @@ public class ArticleServiceImpl implements ArticleService {
 //         */
 //        Page<Article> page = new Page<>(pageParams.getPage(), pageParams.getPageSize());
 //        LambdaQueryWrapper<Article> queryWrapper = new LambdaQueryWrapper<>();
-//
-//        //查询文章的参数 加上分类id，判断不为空 加上分类条件
-//        if (pageParams.getCategoryId() != null) {
-//            queryWrapper.eq(Article::getCategoryId,pageParams.getCategoryId());
-//        }
-//        /**
-//         *  加入标签 条件查询
-//         *  article表中 并没有tag字段
-//         * 一篇文章 有多个标签 //article_tag表中 article_id 1 : n tag_id
-//         * 需要先将tag_id 所对应的所有 article_id，查询出来，然后再到article表查询文章对象集合
-//         * 【使用articleTagMapper查询到对应的articleTags】
-//         */
-//        List<Long> articleIdList = new ArrayList<>();
-//
-//        if (pageParams.getTagId() != null){
-//            LambdaQueryWrapper<ArticleTag> articleTagLambdaQueryWrapper = new LambdaQueryWrapper<>();
-//            articleTagLambdaQueryWrapper.eq(ArticleTag::getTagId,pageParams.getTagId());
-//            List<ArticleTag> articleTags = articleTagMapper.selectList(articleTagLambdaQueryWrapper);
-//            for (ArticleTag articleTag : articleTags) {
-//                articleIdList.add(articleTag.getArticleId());
-//            }
-//            if (articleIdList.size() > 0){
-//                queryWrapper.in(Article::getId,articleIdList);
-//            }
-//        }
-//
-//
 //        //是否置顶进行排序、根据创建时间逆序排序
 //        queryWrapper.orderByDesc(Article::getWeight, Article::getCreateDate);
 //        Page<Article> articlePage = articleMapper.selectPage(page, queryWrapper);
@@ -116,11 +103,6 @@ public class ArticleServiceImpl implements ArticleService {
 
     /**
      * 将List<Article> 转成 List<ArticleVo>
-     *
-     * @param records
-     * @param isTag
-     * @param isAuthor
-     * @return
      */
     private List<ArticleVo> copyList(List<Article> records, boolean isTag, boolean isAuthor) {
         List<ArticleVo> articleVoList = new ArrayList<>();
@@ -132,17 +114,12 @@ public class ArticleServiceImpl implements ArticleService {
 
     /**
      * 将Article 转成 ArticleVo 不是所有的接口都需要标签、作者信息
-     *
-     * @param article
-     * @param isTag
-     * @param isAuthor
-     * @return
      */
     private ArticleVo copy(Article article, boolean isTag, boolean isAuthor) {
         ArticleVo articleVo = new ArticleVo();
         //解决统一缓存中的精度损失问题,修改id类型long为String类型
         articleVo.setId(String.valueOf(article.getId()));
-
+        //相同属性的拷贝
         BeanUtils.copyProperties(article, articleVo);
         // 时间
         articleVo.setCreateDate(new DateTime(article.getCreateDate()).toString("yyyy-MM-dd HH:mm"));
@@ -153,28 +130,24 @@ public class ArticleServiceImpl implements ArticleService {
         }
         if (isAuthor) {
             Long authorId = article.getAuthorId();
-//            articleVo.setAuthor(sysUserService.findUserById(authorId).getNickname());
+//          articleVo.setAuthor(sysUserService.findUserById(authorId).getNickname());
             SysUser sysUser = sysUserService.findUserById(authorId);
+            //用户信息包含头像
             UserVo userVo = new UserVo();
             userVo.setAvatar(sysUser.getAvatar());
             userVo.setId(sysUser.getId().toString());
             userVo.setNickname(sysUser.getNickname());
             articleVo.setAuthor(userVo);
         }
-
-
         return articleVo;
     }
 
     /**
      * 最热文章
-     *
-     * @param limit
-     * @return
      */
     @Override
     public Result hotArticles(int limit) {
-        // select id,title from article order by view_counts limit 5
+        // select id,title from article order by view_counts des limit 5
         LambdaQueryWrapper<Article> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.orderByDesc(Article::getViewCounts);
         queryWrapper.select(Article::getId, Article::getTitle);
@@ -183,12 +156,8 @@ public class ArticleServiceImpl implements ArticleService {
         return Result.success(copyList(articles, false, false));
     }
 
-
     /**
      * 最新文章
-     *
-     * @param limit
-     * @return
      */
     @Override
     public Result newArticles(int limit) {
@@ -203,8 +172,6 @@ public class ArticleServiceImpl implements ArticleService {
 
     /**
      * 文章归档
-     *
-     * @return
      */
     @Override
     public Result listArchives() {
@@ -214,9 +181,6 @@ public class ArticleServiceImpl implements ArticleService {
 
     /**
      * 查看文章详情
-     *
-     * @param id
-     * @return
      */
     @Override
     public Result findArticleById(Long id) {
@@ -228,30 +192,22 @@ public class ArticleServiceImpl implements ArticleService {
         Article article = articleMapper.selectById(id);
         //需要重载copy方法，扩展添加上是否需要文章内容、文章分类
         ArticleVo articleVo = copy(article, true, true, true, true);
-        /**
-         * 查看完文章了，新增阅读数，有没有问题呢？
-         * 查看完文章之后，本应该直接返回数据了，
-         * 这时候做了一个更新操作，更新时加写锁，阳塞其他的读操作，性能就会比较低
-         * 更新 增加了此次接口的 耗时 如果一旦更新出问题，不能影响 查看文章的操作
-         * 线程池 可以把更新操作 扔到线程池中去执行，和主线程就不相关了
-         */
+
         //通过多线程，异步更新文章的阅读数
         threadService.updateViewCount(articleMapper, article);
-        String viewCount = (String) redisTemplate.opsForHash().get("view_count", String.valueOf(id));
-        if (viewCount != null){
-            articleVo.setViewCounts(Integer.parseInt(viewCount));
-        }
         return Result.success(articleVo);
+
+        /**
+         * 通过多线程，异步更新文章的阅读数
+         */
+//        threadService.updateViewCount(articleMapper, article);
+//        String viewCount = (String) redisTemplate.opsForHash().get("view_count", String.valueOf(id));
+//        if (viewCount != null){
+//            articleVo.setViewCounts(Integer.parseInt(viewCount));
+//        }
+//        return Result.success(articleVo);
     }
 
-    @Override
-    public Result findArticleByName() {
-        LambdaQueryWrapper<Article> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Article::getTitle, "关于我");
-        List<Article> articles = articleMapper.selectList(queryWrapper);
-        ArticleVo articleVo = copy(articles.get(0), false, false, true, false);
-        return Result.success(articleVo);
-    }
 
     /**
      * 复制属性，并判断是否需要标签、作者、文章内容、文章分类
@@ -291,12 +247,8 @@ public class ArticleServiceImpl implements ArticleService {
         return articleVo;
     }
 
-
     /**
      * 查找文章内容
-     *
-     * @param bodyId
-     * @return
      */
     private ArticleBodyVo findArticleBody(Long bodyId) {
         ArticleBody articleBody = articleBodyMapper.selectById(bodyId);
@@ -306,73 +258,20 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     /**
-     * 发布文章
-     *
-     * @param articleParam
-     * @return
+     * 查询关于我的博客
      */
-//    @Override
-//    public Result publish(ArticleParam articleParam) {
-//        /**
-//         * 1、发布文章：构建文章对象【给文本表添加上文章对象】
-//         * 2、作者id ：当前的登录用户，通过ThreadLocal 获取
-//         * [因为threadLocal是在登录拦截器放行后添加上用户信息的]，
-//         * 则需要将发布文章的路径加入登录拦截器
-//         * 3、标签：标签id 和 文章id的对应，在[文章-标签表] 添加一个关联记录【给文章-标签表添加上文章-标签对象】
-//         * 4、body 内容存储【给内容表添加上内容对象】，且给文章表添加上的bodyId，更新一下数据库的文章记录
-//         */
-//        Article article = new Article();
-//        // 作者id
-//        SysUser sysUser = UserThreadLocal.get();
-//        article.setAuthorId(sysUser.getId());
-//        //解决统一缓存中的精度损失问题
-//        article.setCategoryId(Long.valueOf(articleParam.getCategory().getId()));
-//        article.setCreateDate(new Date(System.currentTimeMillis()));
-//        article.setCommentCounts(0);
-//        article.setSummary(articleParam.getSummary());
-//        article.setTitle(articleParam.getTitle());
-//        article.setViewCounts(0);
-//        article.setWeight(Article.Article_Common);
-//        article.setBodyId(-1L);
-//
-//        //给【文章表】添加上文章对象
-//        articleMapper.insert(article);
-//        //---------------- 关联表之间的添加 ------------------
-//        //给【文章-标签表】添加上文章-标签对象
-//        List<TagVo> tags = articleParam.getTags();
-//        if(tags != null){
-//            for(TagVo tag: tags){
-//                ArticleTag articleTag = new ArticleTag();
-//                articleTag.setArticleId(article.getId());
-//                //解决统一缓存中的精度损失问题
-//                articleTag.setTagId(Long.valueOf(tag.getId()));
-//                articleTagMapper.insert(articleTag);
-//            }
-//        }
-//        //给【文章内容表】添加上文章内容对象
-//        ArticleBody articleBody = new ArticleBody();
-//        articleBody.setContent(articleParam.getBody().getContent());
-//        articleBody.setContentHtml(articleParam.getBody().getContentHtml());
-//        articleBody.setArticleId(article.getId());
-//        articleBodyMapper.insert(articleBody);
-//        //给文章表添加上的bodyId
-//        article.setBodyId(articleBody.getId());
-//        //更新一下数据库的文章记录
-//        articleMapper.updateById(article);
-//
-//        /**
-//         * 方式1：返回 ArticleVo，则需要考虑分布式id 的精度损失问题--在对应的ArticleVo的字段上添加上标签@JsonSerialize
-//         * ArticleVo articleVo = new ArticleVo();
-//         * articleVo.setId(article.getId());
-//         *
-//         * 方式2：根据前端接口返回的数据格式，定义成map结构返回，并且value是字符串
-//         */
-//        Map<String, String> map = new HashMap<>();
-//        map.put("id", article.getId().toString());
-//        return Result.success(map);
-//    }
+    @Override
+    public Result findArticleByName() {
+        LambdaQueryWrapper<Article> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Article::getTitle, "关于我");
+        List<Article> articles = articleMapper.selectList(queryWrapper);
+        ArticleVo articleVo = copy(articles.get(0), false, false, true, false);
+        return Result.success(articleVo);
+    }
 
-
+    /**
+     * 发布文章
+     */
     @Override
     public Result publish(ArticleParam articleParam) {
         //此接口 要加入到登录拦截当中
@@ -454,18 +353,20 @@ public class ArticleServiceImpl implements ArticleService {
         return Result.success(map);
     }
 
+    /**
+     * 搜索文章
+     */
     @Override
     public Result searchArticle(String search) {
+        int limit = 5;//搜索显示5条内容
         LambdaQueryWrapper<Article> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.orderByDesc(Article::getViewCounts);
         queryWrapper.select(Article::getId,Article::getTitle);
         queryWrapper.like(Article::getTitle,search);
+        queryWrapper.last("limit " + limit);
         //select id,title from article order by view_counts desc limit 5
         List<Article> articles = articleMapper.selectList(queryWrapper);
 
         return Result.success(copyList(articles,false,false));
     }
-
 }
-
-
